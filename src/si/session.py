@@ -35,7 +35,7 @@ class Session(object):
         self._user_id = options.get('user_id', amp.user_id)
         if self._user_id is None:
             self._user_id = utils.random_string()
-        if "session_id" not in options:
+        if "session_id" not in options and self.amp.use_token:
             self._session_id = utils.random_string()
         else:
             self._session_id = options["session_id"]
