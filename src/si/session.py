@@ -139,21 +139,23 @@ class Session(object):
             result[Session.REASON_KEY] = 'client failed because of %s' % ex
             return result
 
-    def decide(self, name, candidates, **options):
+    def decide(self, decision_name, candidates, **options):
         """
         used to send a decide event to SI servers, and to make a decision
         this method does not throw an exception
         """
-        return self.decide_internal(name, candidates, False, None, options)
+        return self.decide_internal(decision_name=decision_name, context_name="", candidates=candidates,
+                                    with_context=False, properties=None, options=options)
 
-    def decide_with_context(self, name, candidates, properties, **options):
+    def decide_with_context(self, context_name, candidates, decision_name, properties, **options):
         """
         used to send a decide with context request to SI servers, and to make a decision
         this method does not throw an exception
         """
-        return self.decide_internal(name, candidates, True, properties, options)
+        return self.decide_internal(decision_name=decision_name, context_name=context_name, candidates=candidates,
+                                    with_context=True, properties=properties, options=options)
 
-    def decide_internal(self, name, candidates, with_context, properties, options):
+    def decide_internal(self, context_name, decision_name, candidates, with_context, properties, options):
         """
         This handles both decide and decide_with_context calls.
         The details are almost the same for each of them.
@@ -164,8 +166,8 @@ class Session(object):
         conn = self.get_connection()
         verbose = options.get('verbose', self.verbose)
         candidate_count = 1
-        for v in candidates.values():
-            candidate_count *= len(v)
+        for value in candidates.values():
+            candidate_count *= len(value)
         if candidate_count >= Session.DECIDE_UPPER_LIMIT:
             if verbose:
                 print('Too many candidates: %s is above %s' % (candidate_count, Session.DECIDE_UPPER_LIMIT))
@@ -173,7 +175,9 @@ class Session(object):
                 "error': 'using default decision because there are too many candidates %s" % candidate_count
             return result
         try:
-            event = self._send_decide_event(conn, name, candidates, with_context, properties, **options)
+            event = self._send_decide_event(conn, context_name=context_name, decision_name=decision_name,
+                                            candidates=candidates, with_context=with_context,
+                                            properties=properties, **options)
             if Session.DECISION_KEY in event:
                 result[Session.DECISION_KEY] = json.loads(event[Session.DECISION_KEY])
                 key = Session.FALLBACK_KEY
@@ -196,7 +200,7 @@ class Session(object):
             return result
         except Exception as ex:
             if verbose:
-                print('EXCEPTION on decide using %s %s: %s %s' % (name, candidates, type(ex), ex))
+                print('EXCEPTION on decide using %s %s: %s %s' % (decision_name, candidates, type(ex), ex))
                 logging.exception('decide')
             result[Session.REASON_KEY] = 'using default decision because of error %s' % ex
             return result
@@ -243,13 +247,14 @@ class Session(object):
             raise Exception('got response %s with status %s' % (text, response.status))
         return json.loads(text)
 
-    def _send_decide_event(self, conn, name, candidates, with_context, properties, **options):
+    def _send_decide_event(self, conn, context_name, decision_name, candidates, with_context, properties, **options):
         """
         used to send a decide event, or a decide with context request, to SI servers, and to make a decision
         """
         verbose = options.get('verbose', self.verbose)
         timeout = options.get('timeout', self.timeout)
-        event = Event.create_decide_event(self, name, candidates)
+        event = Event.create_decide_event(self, context_name=context_name, decision_name=decision_name,
+                                          candidates=candidates)
         if with_context:
             if properties:
                 event[Event.PROPERTIES] = properties
@@ -314,6 +319,7 @@ class Event(object):
     A convenience class for use by the Session class. It represents the events making up a session.
     """
     NAME = 'name'
+    DECISION_NAME = 'decisionName'
     PROPERTIES = 'properties'
     DECISION = 'decision'
     INDEX = 'index'
@@ -344,12 +350,13 @@ class Event(object):
         return event
 
     @staticmethod
-    def create_decide_event(session, name, candidates):
+    def create_decide_event(session, context_name, decision_name, candidates):
         """
         returns a decide dictionary which can be sent in json form as a REST request
         """
         event = dict()
-        event[Event.NAME] = name
+        event[Event.NAME] = context_name
+        event[Event.DECISION_NAME] = decision_name
         event[Event.DECISION] = Event.create_decision_dict(candidates)
         event[Event.USER_ID] = session.user_id
         event[Event.SESSION_ID] = session.session_id
