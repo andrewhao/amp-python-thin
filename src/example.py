@@ -30,10 +30,10 @@ def example_code(domains, key):
     properties_dict = {"isAuthenticated": False, "version": "mobile", "browser_height": 1740, "browser_width": 360}
     print("first session is in its pre decision phase. making a call to decide_with_context,"
           " after which first session will be in its post decision phase")
-    result = first_session.decide_with_context(context_name="Context",
-                                               candidates=choices_dict,
+    result = first_session.decide_with_context(context_name="AmpSession",
+                                               properties=properties_dict,
                                                decision_name="Decide",
-                                               properties=properties_dict)
+                                               candidates=choices_dict)
     print("returned value is", result)
     print("returned decision is", result["decision"])
     # After the decision is made, send a few more observes if possible: this helps improve future decisions.
