@@ -30,12 +30,22 @@ class Amp(object):
         self.conns = []
 
         for amp_agent in self._amp_agents:
-            host_info = amp_agent.split('://')[-1].rsplit(':', 1)
+            amp_agent_components = amp_agent.split('://')
+            first_component = amp_agent_components[0]
+            if first_component.lower() == 'https':
+                use_https = True
+            else:
+                use_https = False
+            last_component = amp_agent_components[-1]
+            host_info = last_component.rsplit(':', 1)
             if len(host_info) == 1:
                 host, port = host_info[0], 8100
             else:
                 host, port = tuple(host_info)
-            conn = http.client.HTTPConnection(host, port=int(port), timeout=self._timeout)
+            if not use_https:
+                conn = http.client.HTTPConnection(host, port=int(port), timeout=self._timeout)
+            else:
+                conn = http.client.HTTPSConnection(host, port=int(port), timeout=self._timeout)
             conn.connect()
             url = '/test/update_from_spa/' + self.key + "?session_life_time=%s" % self._session_lifetime
             conn.request('GET', url)
