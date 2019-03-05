@@ -2,7 +2,11 @@
 Top level module used to create an amp object, which represents a project.
 """
 
-import http.client
+import sys
+if sys.version_info[0] == 3:
+    import http.client as univ_http_client
+else:
+    import httplib as univ_http_client
 
 from si import session
 
@@ -43,9 +47,9 @@ class Amp(object):
             else:
                 host, port = tuple(host_info)
             if not use_https:
-                conn = http.client.HTTPConnection(host, port=int(port), timeout=self._timeout)
+                conn = univ_http_client.HTTPConnection(host, port=int(port), timeout=self._timeout)
             else:
-                conn = http.client.HTTPSConnection(host, port=int(port), timeout=self._timeout)
+                conn = univ_http_client.HTTPSConnection(host, port=int(port), timeout=self._timeout)
             conn.connect()
             url = '/test/update_from_spa/' + self.key + "?session_life_time=%s" % self._session_lifetime
             conn.request('GET', url)
