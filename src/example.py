@@ -4,7 +4,7 @@ To run this code (assuming the domain (i.e. amp agent) addresses are correct and
     python example.py --domains 'amp2-dev-clientsim-0,amp2-dev-clientsim-1' --key '1622f1831b45819b'
 """
 import argparse
-import sys
+import logging
 import si.amp
 
 
@@ -17,7 +17,7 @@ def example_code(domains, key):
     #   key and domain are required in the options dictionary
     # If there is a problem with the key, or any of the domains, it doesn't make sense to create an amp object,
     # and an exception will be thrown.
-    amp_object = si.amp.Amp(key=key, domains=domains)
+    amp_object = si.amp.Amp(key=key, domains=domains, logger=logging.getLogger(__name__))
     # Now session objects associated with this project can be created.
     #    For illustration, one session are created here.
     #    The amp_object does not keep a reference to this object.
@@ -54,15 +54,12 @@ def get_command_line_options():
     return args
 
 
-def main(argv):
-    """
-    main is main
-    """
+def main():
     options = get_command_line_options()
     print('Command line arguments are %s' % options)
-    domains=options["domains"].split(',')
+    domains = options["domains"].split(',')
     example_code(domains=domains, key=options["key"])
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()

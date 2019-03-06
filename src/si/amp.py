@@ -2,13 +2,15 @@
 Top level module used to create an amp object, which represents a project.
 """
 
+from si import session
+
+import logging
 import sys
 if sys.version_info[0] == 3:
     import http.client as univ_http_client
 else:
     import httplib as univ_http_client
 
-from si import session
 
 class Amp(object):
     """
@@ -28,7 +30,7 @@ class Amp(object):
         self._user_id = options.get("user_id", None)
         self._builtin_events = options.get("builtin_events", None)
         self._timeout = options.get("timeout", 10.0) # 10 second timeout
-        self._verbose = options.get("verbose", False)
+        self._logger = options.get("logger", logging.getLogger('amp').addHandler(logging.NullHandler()))
         self._use_token = options.get("use_token", True)
         self._session_lifetime = options.get("session_lifetime", 1800)
         self.conns = []
@@ -54,7 +56,7 @@ class Amp(object):
             url = '/test/update_from_spa/' + self.key + "?session_life_time=%s" % self._session_lifetime
             conn.request('GET', url)
             response = conn.getresponse()
-            if response.getcode() != 200:
+            if response.status != 200:
                 raise Exception('bad response code %s: needs to be 200' % response.getcode())
             text = response.read()
             text = text.decode('utf-8')
@@ -72,7 +74,7 @@ class Amp(object):
     #   user_id
     #   builtin_events
     #   timeout
-    #   verbose
+    #   logger
 
     @property
     def api_path(self):
@@ -135,15 +137,15 @@ class Amp(object):
         self._timeout = val
 
     @property
-    def verbose(self):
-        return self._verbose
+    def logger(self):
+        return self._logger
 
-    @verbose.setter
-    def verbose(self, val):
+    @logger.setter
+    def logger(self, val):
         """
-        Set verbose. Should be true or false. Default value is false.
+        Set logger. Should be logging.logger. Default value is None.
         """
-        self._verbose = val
+        self.logger = val
 
     @property
     def use_token(self):

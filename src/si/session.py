@@ -3,10 +3,9 @@ This module implements the Session object
 """
 import json
 import logging
+import random
 import threading
 import time
-
-from si import utils
 
 
 def get_default_candidate(candidates):
@@ -34,13 +33,13 @@ class Session(object):
         # set the read only properties
         self._user_id = options.get('user_id', amp.user_id)
         if self._user_id is None:
-            self._user_id = utils.random_string()
+            self._user_id = random_string()
         if "session_id" not in options and self.amp.use_token:
-            self._session_id = utils.random_string()
+            self._session_id = random_string()
         else:
             self._session_id = options["session_id"]
         self._timeout = options.get('timeout', None)
-        self._verbose = options.get('verbose', None)
+        self._logger = options.get('logger', amp.logger)
         if self.amp.use_token:
             self._token = ''
         else:
@@ -53,7 +52,7 @@ class Session(object):
     #   user_id (read only)
     #   session_id (read only)
     #   timeout
-    #   verbose
+    #   logger
 
     @property
     def user_id(self):
@@ -83,20 +82,16 @@ class Session(object):
         """
         self._timeout = val
 
-    # verbose property
     @property
-    def verbose(self):
-        if self._verbose is not None:
-            return self._verbose
-        return self.amp.verbose
+    def logger(self):
+        return self._logger
 
-    @verbose.setter
-    def verbose(self, val):
+    @logger.setter
+    def logger(self, val):
         """
-        Set verbose. Should be true or false or None. Default value is None, meaning use whatever
-        is used by the amp object that created the session (which must be true or false).
+        Set logger. Should be logging.logger. can't be None
         """
-        self._verbose = val
+        self._logger = val
 
     @property
     def token(self):
@@ -118,7 +113,7 @@ class Session(object):
         """
         result = dict()
         conn = self.get_connection()
-        verbose = options.get('verbose', self.verbose)
+        logger = options.get('logger', self.logger)  # type: logging._loggerClass
         try:
             event = self._send_observe_event(conn, name, properties, **options)
             if self.amp.use_token:
@@ -133,9 +128,7 @@ class Session(object):
                     result[key] = "amp-agent responded %s" % event[key]
             return result
         except Exception as ex:
-            if verbose:
-                print('EXCEPTION on observe using %s %s: %s %s' % (name, properties, type(ex), ex))
-                logging.exception('observe')
+            logger.exception('EXCEPTION on observe using %s %s' % (name, properties))
             result[Session.REASON_KEY] = 'client failed because of %s' % ex
             return result
 
@@ -160,17 +153,14 @@ class Session(object):
         This handles both decide and decide_with_context calls.
         The details are almost the same for each of them.
         """
-        result = {}
-        result[Session.DECISION_KEY] = get_default_candidate(candidates)
-        result[Session.FALLBACK_KEY] = True
+        result = {Session.DECISION_KEY: get_default_candidate(candidates), Session.FALLBACK_KEY: True}
         conn = self.get_connection()
-        verbose = options.get('verbose', self.verbose)
+        logger = options.get('logger', self.logger)  # type: logging._loggerClass
         candidate_count = 1
         for value in candidates.values():
             candidate_count *= len(value)
         if candidate_count >= Session.DECIDE_UPPER_LIMIT:
-            if verbose:
-                print('Too many candidates: %s is above %s' % (candidate_count, Session.DECIDE_UPPER_LIMIT))
+            logger.error('Too many candidates: %s is above %s' % (candidate_count, Session.DECIDE_UPPER_LIMIT))
             result[Session.REASON_KEY] =\
                 "error': 'using default decision because there are too many candidates %s" % candidate_count
             return result
@@ -199,9 +189,7 @@ class Session(object):
                         self._token = event[key]
             return result
         except Exception as ex:
-            if verbose:
-                print('EXCEPTION on decide using %s %s: %s %s' % (decision_name, candidates, type(ex), ex))
-                logging.exception('decide')
+            logger.exception('EXCEPTION on decide using %s %s' % (decision_name, candidates))
             result[Session.REASON_KEY] = 'using default decision because of error %s' % ex
             return result
 
@@ -209,12 +197,10 @@ class Session(object):
         """
         used to send an observe event to SI servers
         """
-        verbose = options.get('verbose', self.verbose)
+        logger = options.get('logger', self.logger)  # type: logging._loggerClass
         event = Event.create_observe_event(self, name, properties)
-        if verbose:
-            if not event[Event.NAME] or not event[Event.USER_ID] or not event[Event.SESSION_ID] or event[
-                    Event.INDEX] <= 0:
-                print('missing fields in event %s' % event)
+        if not event[Event.NAME] or not event[Event.USER_ID] or not event[Event.SESSION_ID] or event[Event.INDEX] <= 0:
+            logger.error('missing fields in event %s' % event)
         data = json.dumps(event)
         response = None
         headers = {'Content-type': 'application/json'}
@@ -222,10 +208,8 @@ class Session(object):
         try:
             conn.request("POST", url, data, headers)
         except Exception as ex:
-            if verbose:
-                print("Exception thrown with observe request using %s:%s %s %s %s %s: %s %s" % (
-                    conn.host, conn.port, "POST", url, data, headers, type(ex), ex))
-                logging.exception("_send_observe_event")
+            logger.warning("Exception thrown with observe request using %s:%s %s %s %s %s" % (
+                    conn.host, conn.port, "POST", url, data, headers))
             raise ex
         finally:
             # make absolutely sure each request is matched with a getresponse
@@ -235,14 +219,13 @@ class Session(object):
                 # doesn't matter.
                 pass
         if response is None:
-            print('observe using POST %s %s %s got response <None>' % (url, data, headers))
+            logger.warning('observe using POST %s %s %s got response <None>' % (url, data, headers))
             raise Exception('got response <None>')
         else:
             text = response.read()
             text = text.decode('utf-8')
         if response.status != 200:
-            if verbose:
-                print('observe using POST %s %s %s got response %s with status %s' % (
+            logger.warning('observe using POST %s %s %s got response %s with status %s' % (
                     url, data, headers, response, response.status))
             raise Exception('got response %s with status %s' % (text, response.status))
         return json.loads(text)
@@ -251,7 +234,7 @@ class Session(object):
         """
         used to send a decide event, or a decide with context request, to SI servers, and to make a decision
         """
-        verbose = options.get('verbose', self.verbose)
+        logger = options.get('logger', self.logger)  # type: logging._loggerClass
         timeout = options.get('timeout', self.timeout)
         event = Event.create_decide_event(self, context_name=context_name, decision_name=decision_name,
                                           candidates=candidates)
@@ -260,9 +243,8 @@ class Session(object):
                 event[Event.PROPERTIES] = properties
             else:
                 event[Event.PROPERTIES] = []
-        if verbose:
-            if not event[Event.NAME] or not event[Event.USER_ID] or not event[Event.SESSION_ID] or event[Event.INDEX] <= 0:
-                print('missing fields in event %s' % event)
+        if not event[Event.NAME] or not event[Event.USER_ID] or not event[Event.SESSION_ID] or event[Event.INDEX] <= 0:
+            logger.warning('missing fields in event %s' % event)
         data = json.dumps(event)
         response = None
         headers = {'Content-type': 'application/json'}
@@ -273,10 +255,8 @@ class Session(object):
         try:
             conn.request('POST', url, data, headers)
         except Exception as ex:
-            if verbose:
-                print('Exception thrown with decide request using %s:%s %s %s %s %s: %s %s' % (
-                    conn.host, conn.port, 'POST', url, data, headers, type(ex), ex))
-                logging.exception('_send_decide_event')
+            logger.warning('Exception thrown with decide request using %s:%s %s %s %s %s' % (
+                    conn.host, conn.port, 'POST', url, data, headers))
             raise ex
         finally:
             # make absolutely sure each request is matched with a getresponse
@@ -290,8 +270,7 @@ class Session(object):
             response_status = None
             if response is not None:
                 response_status = response.status
-            if verbose:
-                print('decide using %s:%s %s %s %s %s got response %s with status %s' % (
+            logger.warning('decide using %s:%s %s %s %s %s got response %s with status %s' % (
                     conn.host, conn.port, 'POST', url, data, headers, response, response_status))
             raise Exception('got response %s with status %s' % (response, response_status))
         text = response.read()
@@ -379,3 +358,12 @@ class Event(object):
             decide[Event.CANDIDATES] = candidates
         decide[Event.LIMIT] = 1
         return decide
+
+DEFAULT_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+
+def random_string(length=16, charset=DEFAULT_CHARSET):
+    """
+    Returns a random string of the given length using characters from the given charset.
+    """
+    return ''.join(random.choice(charset) for _ in range(length))
