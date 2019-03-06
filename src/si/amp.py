@@ -57,7 +57,7 @@ class Amp(object):
             conn.request('GET', url)
             response = conn.getresponse()
             if response.status != 200:
-                raise Exception('bad response code %s: needs to be 200' % response.getcode())
+                raise Exception('bad response code %s: needs to be 200' % response.status)
             text = response.read()
             text = text.decode('utf-8')
             if text != 'Key is known':
