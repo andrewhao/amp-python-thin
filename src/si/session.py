@@ -161,7 +161,7 @@ class Session(object):
             candidate_count *= len(value)
         if candidate_count >= Session.DECIDE_UPPER_LIMIT:
             logger.error('Too many candidates: %s is above %s' % (candidate_count, Session.DECIDE_UPPER_LIMIT))
-            result[Session.REASON_KEY] =\
+            result[Session.REASON_KEY] = \
                 "error': 'using default decision because there are too many candidates %s" % candidate_count
             return result
         try:
@@ -180,7 +180,8 @@ class Session(object):
             else:  # No decision in response is an error. collect all possible info
                 result[Session.REASON_KEY] = "using default decision because no decision returned from amp-agent"
                 if Session.REASON_KEY in event:
-                    result[Session.REASON_KEY] = result[Session.REASON_KEY] + " because of %s" % event[Session.REASON_KEY]
+                    result[Session.REASON_KEY] = result[Session.REASON_KEY] + " because of %s" % event[
+                        Session.REASON_KEY]
             if self.amp.use_token:
                 key = Session.TOKEN_KEY
                 if key in event:
@@ -209,7 +210,7 @@ class Session(object):
             conn.request("POST", url, data, headers)
         except Exception as ex:
             logger.warning("Exception thrown with observe request using %s:%s %s %s %s %s" % (
-                    conn.host, conn.port, "POST", url, data, headers))
+                conn.host, conn.port, "POST", url, data, headers))
             raise ex
         finally:
             # make absolutely sure each request is matched with a getresponse
@@ -226,7 +227,7 @@ class Session(object):
             text = text.decode('utf-8')
         if response.status != 200:
             logger.warning('observe using POST %s %s %s got response %s with status %s' % (
-                    url, data, headers, response, response.status))
+                url, data, headers, response, response.status))
             raise Exception('got response %s with status %s' % (text, response.status))
         return json.loads(text)
 
@@ -256,7 +257,7 @@ class Session(object):
             conn.request('POST', url, data, headers)
         except Exception as ex:
             logger.warning('Exception thrown with decide request using %s:%s %s %s %s %s' % (
-                    conn.host, conn.port, 'POST', url, data, headers))
+                conn.host, conn.port, 'POST', url, data, headers))
             raise ex
         finally:
             # make absolutely sure each request is matched with a getresponse
@@ -271,7 +272,7 @@ class Session(object):
             if response is not None:
                 response_status = response.status
             logger.warning('decide using %s:%s %s %s %s %s got response %s with status %s' % (
-                    conn.host, conn.port, 'POST', url, data, headers, response, response_status))
+                conn.host, conn.port, 'POST', url, data, headers, response, response_status))
             raise Exception('got response %s with status %s' % (response, response_status))
         text = response.read()
         text = text.decode('utf-8')
@@ -358,6 +359,7 @@ class Event(object):
             decide[Event.CANDIDATES] = candidates
         decide[Event.LIMIT] = 1
         return decide
+
 
 DEFAULT_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 

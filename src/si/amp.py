@@ -145,7 +145,7 @@ class Amp(object):
         """
         Set logger. Should be logging.logger. Default value is None.
         """
-        self.logger = val
+        self._logger = val
 
     @property
     def use_token(self):
