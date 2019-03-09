@@ -13,12 +13,10 @@ DEFAULT_SOCKET_TIMOUT = 10
 
 
 class SmartConn:
-    _logger: logging._loggerClass
-
     def __init__(self, logger, https, host, port, timeout=DEFAULT_SOCKET_TIMOUT,
                  reconnect_timeout=DEFAULT_RECONNECT_TIMOUT):
         self._logger = logger
-        self._https = https, self._host, self._port = host, port
+        self._https, self._host, self._port = https, host, port
         self._reconnect_timeout = reconnect_timeout
         self._socket_timeout = timeout
         self._c()
@@ -60,7 +58,9 @@ class SmartConn:
                             (method, self._host, self._port, path, response.status, text))
         return text
 
-    def request(self, method, path, data, headers):
+    def request(self, method, path, data=None, headers=None):
+        if headers is None:
+            headers = {}
         if self._conn is not None:
             return self._r(method, path, data, headers)
         if time.time() - self._disconnect_time < self._reconnect_timeout:

@@ -2,14 +2,9 @@
 Top level module used to create an amp object, which represents a project.
 """
 
-from si import session,smart_conn
-
 import logging
-import sys
-if sys.version_info[0] == 3:
-    import http.client as univ_http_client
-else:
-    import httplib as univ_http_client
+
+from si import session, smart_conn
 
 
 class Amp(object):
@@ -40,24 +35,20 @@ class Amp(object):
             amp_agent_components = amp_agent.split('://')
             first_component = amp_agent_components[0]
             if first_component.lower() == 'https':
-                use_https = True
+                https = True
             else:
-                use_https = False
+                https = False
             last_component = amp_agent_components[-1]
             host_info = last_component.rsplit(':', 1)
             if len(host_info) == 1:
                 host, port = host_info[0], 8100
             else:
                 host, port = tuple(host_info)
-            conn = smart_conn.SmartConn(self._logger, use_https, host, int(port), True, self._timeout, self._reconnect_timeout)
+            conn = smart_conn.SmartConn(self._logger, https, host, int(port), self._timeout, self._reconnect_timeout)
             url = '/test/update_from_spa/' + self.key + "?session_life_time=%s" % self._session_lifetime
             response = conn.request('GET', url)
-            if response is None or response.status != 200:
-                raise Exception('bad response code %s: needs to be 200' % response.status)
-            text = response.read()
-            text = text.decode('utf-8')
-            if text != 'Key is known':
-                raise Exception('got response text %s. Needs to be "Key is known"' % text)
+            if response != 'Key is known':
+                raise Exception('got response text %s. Needs to be "Key is known"' % response)
             self.conns.append(conn)
 
     def __str__(self):
