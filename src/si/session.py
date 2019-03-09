@@ -128,7 +128,7 @@ class Session(object):
                     result[key] = "amp-agent responded %s" % event[key]
             return result
         except Exception as ex:
-            logger.exception('EXCEPTION on observe using %s %s' % (name, properties))
+            logger.exception('EXCEPTION on observe')
             result[Session.REASON_KEY] = 'client failed because of %s' % ex
             return result
 
@@ -190,7 +190,7 @@ class Session(object):
                         self._token = event[key]
             return result
         except Exception as ex:
-            logger.exception('EXCEPTION on decide using %s %s' % (decision_name, candidates))
+            logger.exception('EXCEPTION on decide')
             result[Session.REASON_KEY] = 'using default decision because of error %s' % ex
             return result
 
@@ -203,40 +203,16 @@ class Session(object):
         if not event[Event.NAME] or not event[Event.USER_ID] or not event[Event.SESSION_ID] or event[Event.INDEX] <= 0:
             logger.error('missing fields in event %s' % event)
         data = json.dumps(event)
-        response = None
         headers = {'Content-type': 'application/json'}
         url = "%s/%s/observeV2" % (self.amp.api_path, self.amp.key)
-        try:
-            conn.request("POST", url, data, headers)
-        except Exception as ex:
-            logger.warning("Exception thrown with observe request using %s:%s %s %s %s %s" % (
-                conn.host, conn.port, "POST", url, data, headers))
-            raise ex
-        finally:
-            # make absolutely sure each request is matched with a getresponse
-            try:
-                response = conn.getresponse()
-            except:
-                # doesn't matter.
-                pass
-        if response is None:
-            logger.warning('observe using POST %s %s %s got response <None>' % (url, data, headers))
-            raise Exception('got response <None>')
-        else:
-            text = response.read()
-            text = text.decode('utf-8')
-        if response.status != 200:
-            logger.warning('observe using POST %s %s %s got response %s with status %s' % (
-                url, data, headers, response, response.status))
-            raise Exception('got response %s with status %s' % (text, response.status))
-        return json.loads(text)
+        response = conn.request("POST", url, data, headers)
+        return json.loads(response)
 
     def _send_decide_event(self, conn, context_name, decision_name, candidates, with_context, properties, **options):
         """
         used to send a decide event, or a decide with context request, to SI servers, and to make a decision
         """
         logger = options.get('logger', self.logger)  # type: logging._loggerClass
-        timeout = options.get('timeout', self.timeout)
         event = Event.create_decide_event(self, context_name=context_name, decision_name=decision_name,
                                           candidates=candidates)
         if with_context:
@@ -247,36 +223,13 @@ class Session(object):
         if not event[Event.NAME] or not event[Event.USER_ID] or not event[Event.SESSION_ID] or event[Event.INDEX] <= 0:
             logger.warning('missing fields in event %s' % event)
         data = json.dumps(event)
-        response = None
         headers = {'Content-type': 'application/json'}
         if with_context:
             url = '%s/%s/decideWithContextV2' % (self.amp.api_path, self.amp.key)
         else:
             url = '%s/%s/decideV2' % (self.amp.api_path, self.amp.key)
-        try:
-            conn.request('POST', url, data, headers)
-        except Exception as ex:
-            logger.warning('Exception thrown with decide request using %s:%s %s %s %s %s' % (
-                conn.host, conn.port, 'POST', url, data, headers))
-            raise ex
-        finally:
-            # make absolutely sure each request is matched with a getresponse
-            try:
-                response = conn.getresponse()
-            except:
-                # doesn't matter.
-                pass
-
-        if response is None or response.status != 200:
-            response_status = None
-            if response is not None:
-                response_status = response.status
-            logger.warning('decide using %s:%s %s %s %s %s got response %s with status %s' % (
-                conn.host, conn.port, 'POST', url, data, headers, response, response_status))
-            raise Exception('got response %s with status %s' % (response, response_status))
-        text = response.read()
-        text = text.decode('utf-8')
-        return json.loads(text)
+        response = conn.request('POST', url, data, headers)
+        return json.loads(response)
 
     def atomic_next_index(self):
         """

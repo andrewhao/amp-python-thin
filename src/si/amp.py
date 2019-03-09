@@ -2,7 +2,7 @@
 Top level module used to create an amp object, which represents a project.
 """
 
-from si import session
+from si import session,smart_conn
 
 import logging
 import sys
@@ -30,6 +30,7 @@ class Amp(object):
         self._user_id = options.get("user_id", None)
         self._builtin_events = options.get("builtin_events", None)
         self._timeout = options.get("timeout", 10.0) # 10 second timeout
+        self._reconnect_timeout = options.get("reconnect_timeout", 10.0)  # 10 second timeout
         self._logger = options.get("logger", logging.getLogger('amp').addHandler(logging.NullHandler()))
         self._use_token = options.get("use_token", True)
         self._session_lifetime = options.get("session_lifetime", 1800)
@@ -48,15 +49,10 @@ class Amp(object):
                 host, port = host_info[0], 8100
             else:
                 host, port = tuple(host_info)
-            if not use_https:
-                conn = univ_http_client.HTTPConnection(host, port=int(port), timeout=self._timeout)
-            else:
-                conn = univ_http_client.HTTPSConnection(host, port=int(port), timeout=self._timeout)
-            conn.connect()
+            conn = smart_conn.SmartConn(self._logger, use_https, host, int(port), True, self._timeout, self._reconnect_timeout)
             url = '/test/update_from_spa/' + self.key + "?session_life_time=%s" % self._session_lifetime
-            conn.request('GET', url)
-            response = conn.getresponse()
-            if response.status != 200:
+            response = conn.request('GET', url)
+            if response is None or response.status != 200:
                 raise Exception('bad response code %s: needs to be 200' % response.status)
             text = response.read()
             text = text.decode('utf-8')
