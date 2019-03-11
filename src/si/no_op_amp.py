@@ -1,11 +1,12 @@
 import logging
 
-from si import session
+import src.si.session as session
 
 
 class NoOpAmp(object):
     def __init__(self, logger):
-        self._logger = logger or logging.getLogger('amp').addHandler(logging.NullHandler())
+        logging.basicConfig()
+        self._logger = logger or logging.getLogger('amp')
 
     def __str__(self):
         return "<NoOp Amp>"

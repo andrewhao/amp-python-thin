@@ -3,8 +3,12 @@ Top level module used to create an amp object, which represents a project.
 """
 
 import logging
+import src.si.smart_conn as smart_conn
+import src.si.session as session
 
-from si import session, smart_conn
+
+class AmpError(Exception):
+    pass
 
 
 class Amp(object):
@@ -12,44 +16,51 @@ class Amp(object):
     The Amp class, which is used to create an object representing a project.
     """
 
-    def __init__(self, key, domains, **options):
+    def __init__(self, key, amp_agents, **options):
         if not key:
-            raise Exception('key value passed into si.Amp.Amp constructor should not be empty')
-        if not domains:
-            raise Exception('domains value passed into si.Amp.Amp constructor should not be empty')
+            raise AmpError("'key' can't not be empty")
+        if not amp_agents:
+            raise AmpError("'amp_agents' can't be empty")
 
         # Set all the properties to initial values.
         self._project_key = key
-        self._amp_agents = domains
+        self._amp_agents = amp_agents
         self._api_path = "/api/core/v2"
         self._user_id = options.get("user_id", None)
         self._builtin_events = options.get("builtin_events", None)
-        self._timeout = options.get("timeout", 10.0) # 10 second timeout
+        self._timeout = options.get("timeout", 10.0)  # 10 second timeout
         self._reconnect_timeout = options.get("reconnect_timeout", 10.0)  # 10 second timeout
-        self._logger = options.get("logger", logging.getLogger('amp').addHandler(logging.NullHandler()))
+        logging.basicConfig()
+        self._logger = options.get("logger", logging.getLogger('amp'))
         self._use_token = options.get("use_token", True)
         self._session_lifetime = options.get("session_lifetime", 1800)
         self.conns = []
 
         for amp_agent in self._amp_agents:
-            amp_agent_components = amp_agent.split('://')
-            first_component = amp_agent_components[0]
-            if first_component.lower() == 'https':
-                https = True
-            else:
-                https = False
-            last_component = amp_agent_components[-1]
-            host_info = last_component.rsplit(':', 1)
-            if len(host_info) == 1:
-                host, port = host_info[0], 8100
-            else:
-                host, port = tuple(host_info)
-            conn = smart_conn.SmartConn(self._logger, https, host, int(port), self._timeout, self._reconnect_timeout)
-            url = '/test/update_from_spa/' + self.key + "?session_life_time=%s" % self._session_lifetime
+            https, host, port = Amp.parse_agent(amp_agent)
+            conn = smart_conn.SmartConn(self._logger, https, host, port, self._timeout, self._reconnect_timeout)
+            url = '/test/update_from_spa/' + self._project_key + "?session_life_time=%s" % self._session_lifetime
             response = conn.request('GET', url)
             if response != 'Key is known':
-                raise Exception('got response text %s. Needs to be "Key is known"' % response)
+                raise AmpError('got response text %s. Needs to be "Key is known"' % response)
             self.conns.append(conn)
+
+    @staticmethod
+    def parse_agent(agent_str):
+        arr = agent_str.split('://')
+        if len(arr) != 2:
+            raise AmpError('bad amp agent %s' % agent_str)
+        protocol = arr[0].lower()
+        if protocol != "http" and protocol != "https":
+            raise AmpError("method in %s must be 'http' or 'https'" % agent_str)
+        https = protocol == 'https'
+        last_component = arr[-1]
+        host_info = last_component.rsplit(':', 1)
+        if len(host_info) == 1:
+            host, port = host_info[0], 8100
+        else:
+            host, port = tuple(host_info)
+        return https, host, int(port)
 
     def __str__(self):
         return "<Amp project_key:%s>" % self._project_key

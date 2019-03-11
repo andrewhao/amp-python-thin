@@ -5,7 +5,9 @@ import time
 
 if sys.version_info[0] == 3:
     import http.client as univ_http_client
+    from src.si import amp
 else:
+    import amp
     import httplib as univ_http_client
 
 DEFAULT_RECONNECT_TIMOUT = 10
@@ -15,13 +17,20 @@ DEFAULT_SOCKET_TIMOUT = 10
 class SmartConn:
     def __init__(self, logger, https, host, port, timeout=DEFAULT_SOCKET_TIMOUT,
                  reconnect_timeout=DEFAULT_RECONNECT_TIMOUT):
-        self._logger = logger
+        logging.basicConfig()
+        self._logger = logger or logging.getLogger('amp')
         self._https, self._host, self._port = https, host, port
         self._reconnect_timeout = reconnect_timeout
         self._socket_timeout = timeout
         self._c()
         if self._conn is None:
-            raise Exception("Can't connect to %s:%s" % (host, port))
+            raise amp.AmpError("Can't connect to %s:%s" % (host, port))
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def _c(self):
         if self._https:
@@ -54,8 +63,8 @@ class SmartConn:
         text = response.read()
         text = text.decode('utf-8')
         if response.status != 200:
-            raise Exception('%s %s:%s/%s failed with status %d: %s' %
-                            (method, self._host, self._port, path, response.status, text))
+            raise amp.AmpError('%s %s:%s/%s failed with status %d: %s' %
+                               (method, self._host, self._port, path, response.status, text))
         return text
 
     def request(self, method, path, data=None, headers=None):
@@ -69,3 +78,7 @@ class SmartConn:
         if self._conn is None:
             raise Exception("The connection to %s:%d is down" % (self._host, self._port))
         return self._r(method, path, data, headers)
+
+    def close(self):
+        if self._conn is not None:
+            self._conn.close()
