@@ -1,6 +1,6 @@
 import logging
 
-import session
+from . import session
 
 
 class NoOpAmp(object):

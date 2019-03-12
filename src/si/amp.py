@@ -4,8 +4,8 @@ Top level module used to create an amp object, which represents a project.
 
 import logging
 
-import smart_conn
-import session
+from . import smart_conn
+from . import session
 
 
 class AmpError(Exception):

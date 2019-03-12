@@ -1,3 +1,4 @@
+# flake8: noqa
 """
 This module implements the Session object
 """
@@ -206,7 +207,7 @@ class Session(object):
         headers = {'Content-type': 'application/json'}
         url = "%s/%s/observeV2" % (self.amp.api_path, self.amp.key)
         response = conn.request("POST", url, data, headers)
-        return json.loads(response)
+        return response.json()
 
     def _send_decide_event(self, conn, context_name, decision_name, candidates, with_context, properties, **options):
         """
@@ -229,7 +230,7 @@ class Session(object):
         else:
             url = '%s/%s/decideV2' % (self.amp.api_path, self.amp.key)
         response = conn.request('POST', url, data, headers)
-        return json.loads(response)
+        return response.json()
 
     def atomic_next_index(self):
         """
