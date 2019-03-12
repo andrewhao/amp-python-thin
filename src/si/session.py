@@ -1,4 +1,3 @@
-# flake8: noqa
 """
 This module implements the Session object
 """
