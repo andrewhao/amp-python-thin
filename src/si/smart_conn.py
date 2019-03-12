@@ -15,7 +15,7 @@ class SmartConn:
         self._request_session = requests.Session()
 
     def _build_url(self, path):
-        return '{}/{}:{}'.format(self._base_url, path, self._port)
+        return '{}:{}/{}'.format(self._base_url, self._port, path)
 
     def request(self, method, path, data=None, headers=None):
         return self._request_session.request(method, self._build_url(path), data=data, headers=headers,

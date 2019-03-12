@@ -39,10 +39,10 @@ class Amp(object):
 
         for amp_agent in self._amp_agents:
             https, host, port = Amp.parse_agent(amp_agent)
-            conn = smart_conn.SmartConn(self._logger, https, host, port, self._timeout, self._reconnect_timeout)
+            conn = smart_conn.SmartConn(self._logger, https, host, port, self._timeout)
             url = '/test/update_from_spa/' + self._project_key + "?session_life_time=%s" % self._session_lifetime
             response = conn.request('GET', url)
-            if response != 'Key is known':
+            if response.text != 'Key is known':
                 raise AmpError('got response text %s. Needs to be "Key is known"' % response)
             self.conns.append(conn)
 
