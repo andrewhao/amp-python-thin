@@ -4,7 +4,7 @@ import time
 import unittest
 from subprocess import Popen
 
-from src.si import amp,smart_conn
+import amp,smart_conn
 
 python = '/usr/local/bin/python3'
 

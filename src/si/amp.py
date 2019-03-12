@@ -3,8 +3,9 @@ Top level module used to create an amp object, which represents a project.
 """
 
 import logging
-import src.si.smart_conn as smart_conn
-import src.si.session as session
+
+import smart_conn
+import session
 
 
 class AmpError(Exception):

@@ -1,6 +1,6 @@
 import logging
 
-import src.si.session as session
+import session
 
 
 class NoOpAmp(object):

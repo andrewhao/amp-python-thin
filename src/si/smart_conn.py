@@ -3,11 +3,11 @@ import socket
 import sys
 import time
 
+import amp
+
 if sys.version_info[0] == 3:
     import http.client as univ_http_client
-    from src.si import amp
 else:
-    import amp
     import httplib as univ_http_client
 
 DEFAULT_RECONNECT_TIMOUT = 10

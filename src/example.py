@@ -5,7 +5,7 @@ To run this code (assuming the amp_agents addresses are correct and the project 
 """
 import argparse
 import logging
-import src.si.amp as amp
+import amp
 
 
 def example_code(amp_agents, key):
