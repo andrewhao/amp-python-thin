@@ -1,5 +1,5 @@
 import unittest
-import amp
+from si import amp
 
 
 class TestAmp(unittest.TestCase):
