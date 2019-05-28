@@ -2,19 +2,16 @@ import subprocess
 import sys
 import time
 import unittest
-from subprocess import Popen
 
-import amp,smart_conn
-
-python = '/usr/local/bin/python3'
+from si import amp, smart_conn
 
 
 class TestSmartConn(unittest.TestCase):
-    _process = None  # type: Popen
+    _process: subprocess.Popen = None
 
     @classmethod
     def setUpClass(cls):
-        cls._process = subprocess.Popen([python, "server.py"])
+        cls._process = subprocess.Popen(['/usr/local/bin/python3', "server.py"])
         time.sleep(1)
 
     @classmethod
@@ -47,7 +44,8 @@ class TestSmartConn(unittest.TestCase):
             self.assertEqual("A good request", response)
             with self.assertRaises(amp.AmpError) as ex:
                 conn.request("GET", "bad")
-            self.assertEqual("GET localhost:8000/bad failed with status 400: A bad request", str(ex.exception))
+            self.assertEqual("GET localhost:8000/bad failed with status 400: A bad request",
+                             str(ex.exception))
 
 
 if __name__ == '__main__':

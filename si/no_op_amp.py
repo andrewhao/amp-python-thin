@@ -1,9 +1,10 @@
 import logging
 
-import session
+from . import session
 
 
-class NoOpAmp(object):
+class NoOpAmp:
+    """ A no-op Amp to be used when you can't connect to Amp agent """
     def __init__(self, logger):
         logging.basicConfig()
         self._logger = logger or logging.getLogger('amp')
@@ -23,7 +24,7 @@ class NoOpAmp(object):
         return NoOpSession(amp=self, **options)
 
 
-class NoOpSession(object):
+class NoOpSession:
     def __init__(self, amp, **options):
         self._logger = options.get('logger', amp.logger)
 
