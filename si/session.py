@@ -178,8 +178,7 @@ class Session:
         }
         if self.token != '':
             request["ampToken"] = self.token
-        i = 0
-        for decision_request in decisions:
+        for i, decision_request in enumerate(decisions):
             candidates = decision_request["candidates"]
             candidate_count = 1
             for value in candidates.values():
@@ -194,7 +193,6 @@ class Session:
             if isinstance(candidates, (dict,)):
                 candidates = [candidates]
             request["decisions"].append({"candidates": candidates, "limit": 1})
-            i += 1
         data = json.dumps(request)
         headers = {'Content-type': 'application/json'}
         url = '%s/%s/multiDecideWithContext' % (self.amp.api_path, self.amp.key)
@@ -208,8 +206,7 @@ class Session:
         if self.amp.use_token and response["ampToken"] != '':
             reply["ampToken"] = response["ampToken"]
             self._token = response["ampToken"]
-        i = 0
-        for decision in response["decisions"]:
+        for i, decision in enumerate(response["decisions"]):
             if decision["fallback"]:
                 reply["decisions"][i] = decision
             elif "decision" in decision and decision["decision"] != '':
@@ -219,7 +216,6 @@ class Session:
                 reply["decisions"][i]["failureReason"] = \
                     "using default decision because no decision returned from amp-agent"
                 reply["decisions"][i]["fallback"] = True
-            i += 1
         return reply
 
     def decide_internal(self, context_name, decision_name, candidates, with_context, properties,

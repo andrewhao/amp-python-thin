@@ -30,7 +30,8 @@ def example_code(amp_agents, key):
     # decide_with_context call, and to send post decide events, for metric evaluation,
     # via observe calls
     # 6 candidates via cross product
-    choices_dict = {"color": ["red", "green", "blue"], "count": [10, 100]}
+    choices_dict1 = {"color": ["red", "green", "blue"], "count": [10, 100]}
+    choices_dict2 = {"state": ["California", "Oregon", "blue"], "age": [27, 32]}
     properties_dict = {"isAuthenticated": False, "version": "mobile", "browser_height": 1740,
                        "browser_width": 360, "si_ip_address": "12.15.240.66"}
     print("first session is in its pre decision phase. making a call to decide_with_context,"
@@ -39,9 +40,9 @@ def example_code(amp_agents, key):
                                                      properties=properties_dict,
                                                      decisions=[
                                                          {"name": "Decide1",
-                                                          "candidates": choices_dict},
+                                                          "candidates": choices_dict1},
                                                          {"name": "Decide2",
-                                                          "candidates": choices_dict}
+                                                          "candidates": choices_dict2}
                                                      ])
     print("returned value is", result)
     print("returned decision is", result["decisions"])
