@@ -203,6 +203,8 @@ class Session:
             reply["error"] = 'using default decision because of error %s' % ex
             return reply
         response = json.loads(net_response)
+        if "intent" in response:
+            reply["intent"] = response["intent"]
         if self.amp.use_token and response["ampToken"] != '':
             reply["ampToken"] = response["ampToken"]
             self._token = response["ampToken"]
@@ -263,6 +265,8 @@ class Session:
                     if event[key] != "":
                         result[key] = event[key]
                         self._token = event[key]
+            if "intent" in event:
+                result["intent"] = event["intent"]
             return result
         except Exception as ex:
             logger.exception('EXCEPTION on decide')
