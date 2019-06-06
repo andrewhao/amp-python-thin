@@ -203,8 +203,6 @@ class Session:
             reply["error"] = 'using default decision because of error %s' % ex
             return reply
         response = json.loads(net_response)
-        if "intent" in response:
-            reply["intent"] = response["intent"]
         if self.amp.use_token and response["ampToken"] != '':
             reply["ampToken"] = response["ampToken"]
             self._token = response["ampToken"]
@@ -213,6 +211,7 @@ class Session:
                 reply["decisions"][i] = decision
             elif "decision" in decision and decision["decision"] != '':
                 reply["decisions"][i] = {"decision": json.loads(decision["decision"]),
+                                         "intent": decision.get("intent"),
                                          "fallback": False}
             else:  # No decision in response is an error. collect all possible info
                 reply["decisions"][i]["failureReason"] = \
